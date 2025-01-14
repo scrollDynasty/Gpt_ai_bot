@@ -2,6 +2,7 @@ import telebot
 from openai import OpenAI
 import time
 from io import BytesIO
+from gtts import gTTS
 
 from config import TOKENT
 from config import gptApi
@@ -34,26 +35,23 @@ def text_to_speech(message):
     command_parts = message.text.split(maxsplit=1)
 
     if len(command_parts) < 2 or not command_parts[1].strip():
-        bot.send_message(message.chat.id, "Вы не ввели описание для генерации фото. Пожалуйста, укажите описание.")
+        bot.send_message(message.chat.id, "Вы не ввели текст для преобразования в речь.")
         return
-    
-    prompt = command_parts[1].strip()
 
+    prompt = command_parts[1].strip()
     bot.send_message(message.chat.id, "Пожалуйста, подождите...")
 
-    response = client.audio.speech.create(
-    model="tts-1",
-    voice="alloy",
-    input=prompt,
-    response_format='opus'
-    )
+    try:
+        # Генерация речи
+        tts = gTTS(text=prompt, lang='ru')
+        temp_file = BytesIO()
+        tts.write_to_fp(temp_file)
+        temp_file.seek(0)
 
-    
-    temp_file = BytesIO()
-    temp_file.write(response.read())
-    temp_file.seek(0)
-    bot.send_voice(message.chat.id, temp_file)
-
+        # Отправка голосового сообщения
+        bot.send_voice(message.chat.id, temp_file)
+    except Exception as e:
+        bot.send_message(message.chat.id, f"Ошибка: {str(e)}")
 @bot.message_handler(commands=['image'])
 def img_generate(message):
     
@@ -102,7 +100,3 @@ def assistant(message):
     
 
 bot.polling(none_stop=True)
-
-
-
-
